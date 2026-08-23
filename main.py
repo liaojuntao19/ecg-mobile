@@ -50,10 +50,30 @@ DS_RED = (0.91, 0.30, 0.24, 1)        # 停止红
 DS_TEXT = (0.2, 0.2, 0.25, 1)         # 深灰文字
 DS_GRAY = (0.85, 0.87, 0.9, 1)        # 浅灰
 
-# 复用 PC 端算法（与 main.py 同目录）
-import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ecg_filter import EcgFilter
+# 手机版轻量滤波（纯 Python，不依赖 scipy——打包小、手机稳）
+# 与 PC 端算法思路一致：50Hz 陷波 + 平滑
+class LightFilter:
+    """轻量滤波：50Hz IIR 陷波 + 滑动平均（纯 Python，手机用）"""
+    def __init__(self):
+        # 50Hz 陷波系数（200Hz采样，与 PC 端 ecg_filter 的 notch 一致）
+        self.b = [0.9911962348233063, -0.00000000000000012138652963032703, 0.9911962348233063]
+        self.a = [1.0, -0.00000000000000012138652963032703, 0.9823924696466126]
+        self.w1 = 0.0
+        self.w2 = 0.0
+        # 滑动平均平滑
+        self.smooth = [0.0] * 9
+
+    def process(self, x):
+        x = float(x)
+        # 50Hz 陷波（直接 II 型）
+        w = x - self.a[1] * self.w1 - self.a[2] * self.w2
+        y = self.b[0] * w + self.b[1] * self.w1 + self.b[2] * self.w2
+        self.w2 = self.w1
+        self.w1 = w
+        # 滑动平均平滑
+        self.smooth.pop(0)
+        self.smooth.append(y)
+        return sum(self.smooth) / len(self.smooth)
 
 DEV_NAME = "ECG-S3"
 SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
@@ -109,7 +129,7 @@ class ECGWidget(BoxLayout):
         self.max_points = int(self.sample_rate * self.display_seconds)
         self.data = []
         self.raw = []
-        self.filt = EcgFilter(mode="notch")
+        self.filt = LightFilter()   # 手机版轻量滤波（纯Python）
         self.parser = FrameParser()
         self.running = False
         self.thread = None
