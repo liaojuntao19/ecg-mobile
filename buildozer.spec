@@ -7,7 +7,7 @@ source.include_exts = py,png,jpg,kv,atlas,ttf,txt
 version = 0.1
 main.py = main.py
 python3.version = 3.11
-requirements = python3,kivy==2.3.1,numpy,scipy,bleak
+requirements = python3,kivy==2.3.1,bleak
 android.permissions = BLUETOOTH,BLUETOOTH_ADMIN,BLUETOOTH_SCAN,BLUETOOTH_CONNECT,ACCESS_FINE_LOCATION,ACCESS_COARSE_LOCATION
 android.api = 33
 android.minapi = 24
